@@ -9,12 +9,12 @@ class InspectionService {
       uidproductor: producerId,
       estado: 'Solicitada',
     };
-
     const id_lugar = data?.idlugarproduccion; // ? evita que rompa si data es null
     if (!id_lugar) {
       throw new AppError('El idlugarproduccion no está presente en los datos enviados.', 400);
     }
 
+    //peticion para saber si el lugar tiene predio central
     try {
       // Aseguramos que el token empiece con Bearer si no lo trae implícito
       const response = await fetch(`${env.ENTITIES_SERVICE_URL}/locations/lugares/verificarCentral/${id_lugar}`, {
@@ -27,11 +27,39 @@ class InspectionService {
       if (!response.ok) {
         throw new AppError(`El servidor respondió con código ${response.status}` + response.message);
       }
-
       // 2. Si es correcta, procesamos el JSON de forma segura
       const result = await response.json();
       if (result.data == true) {
-        return await inspectionRepository.createSolicitud(solicitud);
+        if (data.tipo_inspeccion === 'inspeccion tecnica' ){
+          //Si es inspeccion tecnica no se necesita lotes
+          return await inspectionRepository.createSolicitud(solicitud);
+        }else if (data.tipo_inspeccion === 'inspeccion fitosanitaria'){
+          //Si es inspeccion fitosanitaria se necesita lotes y hacemos la peticion a la API de lugares para verificar si hay lotes
+          try{
+            const response = await fetch(`${env.ENTITIES_SERVICE_URL}/locations/lotes/${id_lugar}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': token,
+              'Content-Type': 'application/json'
+            },
+          });
+          if(!response.ok){
+            throw new AppError(`El servidor respondió con código ${response.status}` + response.message);
+          }
+
+          const result2 = await response.json();
+          if (result2.data.length === 0){
+            throw new AppError('El lugar no tiene lotes, no se le puede hacer una solicitud de inspeccion fitosanitaria', 400);
+          }else{
+            //crear solicitud de inspeccion fitosanitaria si el lugar tiene lotes 
+            return await inspectionRepository.createSolicitud(solicitud);
+          }
+
+          }catch (e){
+            throw new AppError(e.message, 500);
+          }   
+        }
+        
       } else if (result.data == false) {
         throw new AppError('El lugar no tiene predio central, no se le puede hacer una solicitud de inspeccion', 400);
       }
@@ -41,38 +69,15 @@ class InspectionService {
     }
   }
 
+  async deleteSolicitud(id_solicitud) {
+    return await inspectionRepository.deleteSolicitud(id_solicitud);
+  }
+
 
   async getAllSolicitudes() {
     return await inspectionRepository.getSolicitudes();
   }
 
-  async fillFitosanitaria(data, technicalId) {
-    const form = {
-      ...data,
-      uidTecnico: technicalId
-    };
-    return await inspectionRepository.createFitosanitaria(form);
-  }
-
-  async fillTecnica(data, technicalId) {
-    const form = { ...data };
-    return await inspectionRepository.createTecnica(form);
-  }
-
-  async addLoteAndPests(loteData, pestsDataArray) {
-    // Guarda lote y su estado actual
-    const lote = await inspectionRepository.createInspeccionLote(loteData);
-    const conteos = [];
-
-    // Guarda el mapeo multivaluado si existe
-    if (pestsDataArray && pestsDataArray.length > 0) {
-      for (const pst of pestsDataArray) {
-        const pestBody = { ...pst, idInspeccionLote: lote.id };
-        const res = await inspectionRepository.addConteoPlaga(pestBody);
-        conteos.push(res);
-      }
-    }
-    return { lote, conteos };
-  }
+  
 }
 module.exports = new InspectionService();

@@ -14,6 +14,17 @@ class InspectionRepository {
     return result;
   }
 
+  async deleteSolicitud(id) {
+    const { data, error } = await supabase
+      .from('solicitud_inspeccion')
+      .delete()
+      .eq('idsolicitud', id)
+      .select()
+      .single();
+    if (error) throw new AppError(error.message, 400);
+    return data;
+  }
+
   async getSolicitudes() {
     const { data, error } = await supabase
       .from('solicitud_inspeccion')
@@ -22,51 +33,6 @@ class InspectionRepository {
     return data;
   }
 
-  // === 2. Inspeccion Fitosanitaria ===
-  async createFitosanitaria(data) {
-    const { data: result, error } = await supabase
-      .from('inspeccion_fitosanitaria')
-      .insert([data])
-      .select()
-      .single();
-
-    if (error) throw new AppError(error.message, 400);
-    return result;
-  }
-
-  // === 3. Inspeccion Tecnica ===
-  async createTecnica(data) {
-    const { data: result, error } = await supabase
-      .from('inspeccion_tecnica')
-      .insert([data])
-      .select()
-      .single();
-
-    if (error) throw new AppError(error.message, 400);
-    return result;
-  }
-
-  // === 4. Inspeccion por Lote & Conteo de plagas ===
-  async createInspeccionLote(data) {
-    const { data: result, error } = await supabase
-      .from('inspeccion_lote')
-      .insert([data])
-      .select()
-      .single();
-
-    if (error) throw new AppError(error.message, 400);
-    return result;
-  }
-
-  async addConteoPlaga(data) {
-    const { data: result, error } = await supabase
-      .from('conteo_plagas')
-      .insert([data])
-      .select()
-      .single();
-
-    if (error) throw new AppError(error.message, 400);
-    return result;
-  }
+  
 }
 module.exports = new InspectionRepository();

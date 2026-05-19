@@ -5,9 +5,10 @@ const { crossServiceAuth } = require('../../middlewares/authMiddleware');
 
 // === Productor ===
 router.post('/solicitudes', crossServiceAuth('Productor'), inspectionController.solicitInspection);
+router.delete('/solicitudes/:idsolicitud', crossServiceAuth('Productor'), inspectionController.deleteSolicitud);
 
 // === Compartido === colocar esto: crossServiceAuth('Tecnico', 'Admin', 'Productor')
-router.get('/solicitudes', crossServiceAuth('Tecnico', 'Admin', 'Productor', 'Funcionario'), inspectionController.fetchSolicitudes);
+router.get('/solicitudes', crossServiceAuth('Productor', 'Funcionario'), inspectionController.fetchSolicitudes);
 
 // === Asistente Tecnico ===
 router.post('/fitosanitaria', crossServiceAuth('Tecnico'), inspectionController.submitFito);
