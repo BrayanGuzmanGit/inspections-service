@@ -11,8 +11,8 @@ router.patch('/solicitudes/:idsolicitud', crossServiceAuth('Funcionario'), inspe
 router.get('/solicitudes', crossServiceAuth('Productor', 'Funcionario'), inspectionController.fetchSolicitudes);
 
 // === Asistente Tecnico ===
-router.post('/fitosanitaria', crossServiceAuth('Tecnico'), inspectionController.submitFito);
-router.post('/tecnica', crossServiceAuth('Tecnico'), inspectionController.submitTecnica);
-router.post('/conteo-lotes', crossServiceAuth('Tecnico'), inspectionController.addLoteWithPests);
+// router.post('/fitosanitaria', crossServiceAuth('Tecnico'), inspectionController.submitFito);
+// router.post('/tecnica', crossServiceAuth('Tecnico'), inspectionController.submitTecnica);
+// router.post('/conteo-lotes', crossServiceAuth('Tecnico'), inspectionController.addLoteWithPests);
 
 module.exports = router;
