@@ -3,11 +3,11 @@ const router = express.Router();
 const inspectionController = require('./inspectionController');
 const { crossServiceAuth } = require('../../middlewares/authMiddleware');
 
-// === Productor ===
 router.post('/solicitudes', crossServiceAuth('Productor'), inspectionController.solicitInspection);
-router.delete('/solicitudes/:idsolicitud', crossServiceAuth('Productor'), inspectionController.deleteSolicitud);
+router.delete('/solicitudes/:idsolicitud', crossServiceAuth('Funcionario'), inspectionController.deleteSolicitud);//Eliminar solicitud
+router.patch('/solicitudes/:idsolicitud', crossServiceAuth('Funcionario'), inspectionController.editSolicitud); //Aceptar solicitud cambiando estado a aceptada
 
-// === Compartido === colocar esto: crossServiceAuth('Tecnico', 'Admin', 'Productor')
+// === Compartido === 
 router.get('/solicitudes', crossServiceAuth('Productor', 'Funcionario'), inspectionController.fetchSolicitudes);
 
 // === Asistente Tecnico ===

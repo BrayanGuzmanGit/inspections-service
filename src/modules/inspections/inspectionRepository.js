@@ -25,6 +25,27 @@ class InspectionRepository {
     return data;
   }
 
+  async editSolicitud(id_solicitud){
+    const { data, error } = await supabase
+      .from('solicitud_inspeccion')
+      .update({ estado: 'Aceptada' })
+      .eq('idsolicitud', id_solicitud)
+      .select()
+      .single();
+    if (error) throw new AppError(error.message, 400);
+    return data;
+  }
+
+  async getSolicitudById(idsolicitud) {
+    const { data, error } = await supabase
+      .from('solicitud_inspeccion')
+      .select('*')
+      .eq('idsolicitud', idsolicitud)
+      .single();
+    if (error) throw new AppError(error.message, 404);
+    return data;
+  }
+
   async getSolicitudes() {
     const { data, error } = await supabase
       .from('solicitud_inspeccion')

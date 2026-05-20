@@ -73,11 +73,44 @@ class InspectionService {
     return await inspectionRepository.deleteSolicitud(id_solicitud);
   }
 
+  async editSolicitud(id_solicitud, id_tecnico, token){
+    //1. Traer info de la solicitud
+    const solicitud = await inspectionRepository.getSolicitudById(id_solicitud);
+    if (solicitud.estado !== 'Solicitada') {
+      throw new AppError('La solicitud no se puede editar porque no está en estado solicitada', 400);
+    }
+
+    if (solicitud.tipo_inspeccion==='inspeccion fitosanitaria'){
+      throw new AppError("En proceso de aceptar fitosanitarias", 300);
+    }else if(solicitud.tipo_inspeccion==='inspeccion tecnica'){
+      throw new AppError("En proceso de aceptar tecnicas", 300);
+    }
+    return await inspectionRepository.editSolicitud(id_solicitud, id_tecnico);
+  }
+
+
+  async getDireccionLugar(idlugarproduccion, token){
+    try {
+      const response = await fetch(`${env.ENTITIES_SERVICE_URL}/locations/lugares/${idlugarproduccion}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+      });
+      if (!response.ok) {
+        throw new AppError(`El servidor respondió con código ${response.status}` + response.message);
+      }
+      const result = await response.json();
+      return result.data;
+    } catch (e) {
+      throw new AppError('Error al obtener el lugar: ' + e.message, 500);
+    }
+  }
+
 
   async getAllSolicitudes() {
     return await inspectionRepository.getSolicitudes();
   }
-
-  
 }
 module.exports = new InspectionService();

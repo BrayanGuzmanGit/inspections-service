@@ -13,6 +13,7 @@ class InspectionController {
     }
   }
 
+
   async deleteSolicitud(req, res, next) {
     try {
       const { idsolicitud } = req.params;
@@ -22,6 +23,20 @@ class InspectionController {
       next(err); 
     }
   }
+
+
+  async editSolicitud(req, res, next) {
+    try {
+      const { idsolicitud } = req.params;
+      const {idtecnico} = req.body;
+      const token = req.headers.authorization;
+      const result = await inspectionService.editSolicitud(idsolicitud, idtecnico, token);
+      return ApiResponse.success(res, result, 'Solicitud aceptada', 201);
+    } catch (err) {
+      next(err); 
+    }
+  }
+
 
   async fetchSolicitudes(req, res, next) {
     try {
