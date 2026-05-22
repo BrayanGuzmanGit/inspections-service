@@ -25,7 +25,7 @@ class InspectionRepository {
     return data;
   }
 
-  async editSolicitud(id_solicitud){
+  async editSolicitud(id_solicitud) {
     const { data, error } = await supabase
       .from('solicitud_inspeccion')
       .update({ estado: 'Aceptada' })
@@ -54,6 +54,5 @@ class InspectionRepository {
     return data;
   }
 
-  
 }
 module.exports = new InspectionRepository();

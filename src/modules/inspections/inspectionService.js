@@ -30,36 +30,36 @@ class InspectionService {
       // 2. Si es correcta, procesamos el JSON de forma segura
       const result = await response.json();
       if (result.data == true) {
-        if (data.tipo_inspeccion === 'inspeccion tecnica' ){
+        if (data.tipo_inspeccion === 'inspeccion tecnica') {
           //Si es inspeccion tecnica no se necesita lotes
           return await inspectionRepository.createSolicitud(solicitud);
-        }else if (data.tipo_inspeccion === 'inspeccion fitosanitaria'){
+        } else if (data.tipo_inspeccion === 'inspeccion fitosanitaria') {
           //Si es inspeccion fitosanitaria se necesita lotes y hacemos la peticion a la API de lugares para verificar si hay lotes
-          try{
+          try {
             const response = await fetch(`${env.ENTITIES_SERVICE_URL}/locations/lotes/${id_lugar}`, {
-            method: 'GET',
-            headers: {
-              'Authorization': token,
-              'Content-Type': 'application/json'
-            },
-          });
-          if(!response.ok){
-            throw new AppError(`El servidor respondió con código ${response.status}` + response.message);
-          }
+              method: 'GET',
+              headers: {
+                'Authorization': token,
+                'Content-Type': 'application/json'
+              },
+            });
+            if (!response.ok) {
+              throw new AppError(`El servidor respondió con código ${response.status}` + response.message);
+            }
 
-          const result2 = await response.json();
-          if (result2.data.length === 0){
-            throw new AppError('El lugar no tiene lotes, no se le puede hacer una solicitud de inspeccion fitosanitaria', 400);
-          }else{
-            //crear solicitud de inspeccion fitosanitaria si el lugar tiene lotes 
-            return await inspectionRepository.createSolicitud(solicitud);
-          }
+            const result2 = await response.json();
+            if (result2.data.length === 0) {
+              throw new AppError('El lugar no tiene lotes, no se le puede hacer una solicitud de inspeccion fitosanitaria', 400);
+            } else {
+              //crear solicitud de inspeccion fitosanitaria si el lugar tiene lotes 
+              return await inspectionRepository.createSolicitud(solicitud);
+            }
 
-          }catch (e){
+          } catch (e) {
             throw new AppError(e.message, 500);
-          }   
+          }
         }
-        
+
       } else if (result.data == false) {
         throw new AppError('El lugar no tiene predio central, no se le puede hacer una solicitud de inspeccion', 400);
       }
@@ -73,23 +73,23 @@ class InspectionService {
     return await inspectionRepository.deleteSolicitud(id_solicitud);
   }
 
-  async editSolicitud(id_solicitud, id_tecnico, token){
+  async editSolicitud(id_solicitud, id_tecnico, token) {
     //1. Traer info de la solicitud
     const solicitud = await inspectionRepository.getSolicitudById(id_solicitud);
     if (solicitud.estado !== 'Solicitada') {
       throw new AppError('La solicitud no se puede editar porque no está en estado solicitada', 400);
     }
 
-    if (solicitud.tipo_inspeccion==='inspeccion fitosanitaria'){
+    if (solicitud.tipo_inspeccion === 'inspeccion fitosanitaria') {
       throw new AppError("En proceso de aceptar fitosanitarias", 300);
-    }else if(solicitud.tipo_inspeccion==='inspeccion tecnica'){
+    } else if (solicitud.tipo_inspeccion === 'inspeccion tecnica') {
       throw new AppError("En proceso de aceptar tecnicas", 300);
     }
     return await inspectionRepository.editSolicitud(id_solicitud, id_tecnico);
   }
 
 
-  async getDireccionLugar(idlugarproduccion, token){
+  async getDireccionLugar(idlugarproduccion, token) {
     try {
       const response = await fetch(`${env.ENTITIES_SERVICE_URL}/locations/lugares/${idlugarproduccion}`, {
         method: 'GET',
