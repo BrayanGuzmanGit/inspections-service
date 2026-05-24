@@ -69,23 +69,22 @@ class InspectionService {
     }
   }
 
-  async deleteSolicitud(id_solicitud) {
-    return await inspectionRepository.deleteSolicitud(id_solicitud);
+  async deleteSolicitud(id_solicitud,estado) {
+    return await inspectionRepository.deleteSolicitud(id_solicitud,estado);
   }
 
-  async editSolicitud(id_solicitud, id_tecnico, token) {
+  async editSolicitud(id_solicitud, id_tecnico) {
     //1. Traer info de la solicitud
     const solicitud = await inspectionRepository.getSolicitudById(id_solicitud);
     if (solicitud.estado !== 'Solicitada') {
       throw new AppError('La solicitud no se puede editar porque no está en estado solicitada', 400);
     }
-
+    //quizas añadir validacion de que el tecnico existe
     if (solicitud.tipo_inspeccion === 'inspeccion fitosanitaria') {
-      throw new AppError("En proceso de aceptar fitosanitarias", 300);
+      return await inspectionRepository.editSolicitudFito(id_solicitud, id_tecnico);
     } else if (solicitud.tipo_inspeccion === 'inspeccion tecnica') {
-      throw new AppError("En proceso de aceptar tecnicas", 300);
+      return await inspectionRepository.editSolicitudTecnica(id_solicitud, id_tecnico);
     }
-    return await inspectionRepository.editSolicitud(id_solicitud, id_tecnico);
   }
 
 
@@ -109,8 +108,95 @@ class InspectionService {
   }
 
 
-  async getAllSolicitudes() {
-    return await inspectionRepository.getSolicitudes();
+  async getAllSolicitudes(token) {
+    const inspecciones = await inspectionRepository.getSolicitudes();
+    
+    if (inspecciones.length===0){
+      throw new AppError('No se encontraron solicitudes de inspeccion', 404);
+    }
+
+    const ids_lugares = [...new Set(inspecciones.map(inspeccion => inspeccion.idlugarproduccion))];
+
+    let lugares = [];
+    try {
+      const response = await fetch(`${env.ENTITIES_SERVICE_URL}/locations/lugares/inspecciones`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({"ids_lugares":ids_lugares})
+      });
+
+      if (!response.ok) {
+        throw new AppError(`El servidor respondió con código ${response.status}` + response.message);
+      }
+
+      const result = await response.json();
+      lugares = result.data || [];
+    } catch (e) {
+      throw new AppError('Error al obtener el lugar: ' + e.message, 500);
+    }
+
+    const inspeccionesConLugar = inspecciones.map(inspeccion => {
+      // Find the corresponding lugar
+      const lugarEncontrado = lugares.find(l => l.id === inspeccion.idlugarproduccion) || null;
+      
+      // Remove idlugarproduccion and add lugar
+      const { idlugarproduccion, ...restoInspeccion } = inspeccion;
+      
+      return {
+        ...restoInspeccion,
+        lugar: lugarEncontrado
+      };
+    });
+
+    return inspeccionesConLugar;
+  }
+
+
+  //inspecciones tecnicas
+  async getInspeccionesTecnicasAsignadas(authHeader){
+    let user = {};
+    try {
+      if (!authHeader) throw new AppError('No token provisto', 401);
+
+      const response = await fetch(`${env.ENTITIES_SERVICE_URL}/users/me`, {
+        method: 'GET',
+        headers: { 'Authorization': authHeader,
+          'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        throw new AppError(`El servidor respondió con código ${response.status}` + response.statusText);
+      }
+
+      const resultData = await response.json();
+      user = resultData.data;
+      let result = null;
+
+      if (user.rol==='Tecnico'){
+        result = await inspectionRepository.getInspeccionesTecnicasAsignadasTecnico(user.id);
+      }else if (user.rol==='Productor'){
+        result = await inspectionRepository.getInspeccionesTecnicasAsignadasProductor(user.id);
+      }
+      return result;
+    }catch(e){
+      throw new AppError(e.message, 500);
+    }
+    
+  }
+
+  async makeInspeccionTecnica(id_tecnico, data) {
+    const inspeccion = await inspectionRepository.getInspeccionTecnicaById(data.idinspeccion);
+    if (inspeccion.uidtecnico !== id_tecnico) {
+      throw new AppError('No eres el tecnico asignado para realizar esta inspeccion', 403);
+    }
+
+    if(solicitud.tipo_inspeccion !== 'inspeccion tecnica') {
+      throw new AppError('La solicitud no es una inspeccion tecnica', 400);
+    }
+    return await inspectionRepository.makeInspeccionTecnica(id_tecnico, data);
   }
 }
 module.exports = new InspectionService();
