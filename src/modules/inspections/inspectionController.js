@@ -30,8 +30,8 @@ class InspectionController {
   async editSolicitud(req, res, next) {
     try {
       const { idsolicitud } = req.params;
-      const {idtecnico} = req.body;
-      const result = await inspectionService.editSolicitud(idsolicitud, idtecnico);
+      const {idtecnico, fecha_inspeccion, estado} = req.body;
+      const result = await inspectionService.editSolicitud(idsolicitud, idtecnico, fecha_inspeccion, estado);
       return ApiResponse.success(res, result, 'Solicitud aceptada', 201);
     } catch (err) {
       next(err); 

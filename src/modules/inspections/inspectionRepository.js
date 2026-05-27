@@ -25,10 +25,10 @@ class InspectionRepository {
     return data;
   }
 
-  async editSolicitudFito(id_solicitud,uidtecnico) {
+  async editSolicitudFito(id_solicitud,uidtecnico, fecha_inspeccion, estado) {
     const { data, error } = await supabase
       .from('solicitud_inspeccion')
-      .update({ estado: 'Aceptada' })
+      .update({ 'estado': estado })
       .eq('idsolicitud', id_solicitud)
       .select()
       .single();
@@ -38,7 +38,8 @@ class InspectionRepository {
     .from('inspeccion_fitosanitaria')
     .insert({
       'idsolicitud' : id_solicitud,
-      'uidtecnico' : uidtecnico
+      'uidtecnico' : uidtecnico,
+      'fechainicioinspeccion': fecha_inspeccion
     })
     .select()
     .single();
@@ -48,10 +49,10 @@ class InspectionRepository {
   }
 
 
-  async editSolicitudTecnica(id_solicitud,uidtecnico) {
+  async editSolicitudTecnica(id_solicitud,uidtecnico, fecha_inspeccion, estado) {
     const { data, error } = await supabase
       .from('solicitud_inspeccion')
-      .update({ estado: 'Aceptada' })
+      .update({ 'estado': estado })
       .eq('idsolicitud', id_solicitud)
       .select()
       .single();
@@ -61,7 +62,8 @@ class InspectionRepository {
     .from('inspeccion_tecnica')
     .insert({
       'idsolicitud' : id_solicitud,
-      'uidtecnico' : uidtecnico
+      'uidtecnico' : uidtecnico,
+      'fechainicioinspeccion': fecha_inspeccion
     })
     .select()
     .single();
@@ -92,7 +94,7 @@ class InspectionRepository {
   async getInspeccionesTecnicasAsignadasTecnico(uidtecnico){
     const {data, error} = await supabase
     .from('inspeccion_tecnica')
-    .select('*')
+    .select('*, solicitud_inspeccion(*)')
     .eq('uidtecnico', uidtecnico);
     if (error) throw new AppError(error.message, 500);
     return data;

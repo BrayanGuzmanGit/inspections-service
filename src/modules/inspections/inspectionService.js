@@ -73,7 +73,7 @@ class InspectionService {
     return await inspectionRepository.deleteSolicitud(id_solicitud,estado);
   }
 
-  async editSolicitud(id_solicitud, id_tecnico) {
+  async editSolicitud(id_solicitud, id_tecnico, fecha_inspeccion, estado) {
     //1. Traer info de la solicitud
     const solicitud = await inspectionRepository.getSolicitudById(id_solicitud);
     if (solicitud.estado !== 'Solicitada') {
@@ -81,9 +81,9 @@ class InspectionService {
     }
     //quizas añadir validacion de que el tecnico existe
     if (solicitud.tipo_inspeccion === 'inspeccion fitosanitaria') {
-      return await inspectionRepository.editSolicitudFito(id_solicitud, id_tecnico);
+      return await inspectionRepository.editSolicitudFito(id_solicitud, id_tecnico, fecha_inspeccion, estado);
     } else if (solicitud.tipo_inspeccion === 'inspeccion tecnica') {
-      return await inspectionRepository.editSolicitudTecnica(id_solicitud, id_tecnico);
+      return await inspectionRepository.editSolicitudTecnica(id_solicitud, id_tecnico, fecha_inspeccion, estado);
     }
   }
 
@@ -117,6 +117,10 @@ class InspectionService {
 
     const ids_lugares = [...new Set(inspecciones.map(inspeccion => inspeccion.idlugarproduccion))];
 
+    if(ids_lugares.length===0){
+      throw new AppError('No se encontraron lugares para las solicitudes de inspeccion', 404);
+    }
+
     let lugares = [];
     try {
       const response = await fetch(`${env.ENTITIES_SERVICE_URL}/locations/lugares/inspecciones`, {
@@ -137,12 +141,13 @@ class InspectionService {
     } catch (e) {
       throw new AppError('Error al obtener el lugar: ' + e.message, 500);
     }
-
+    if (lugares.length === 0){
+      throw new AppError('No se encontraron lugares', 404);
+    }
     const inspeccionesConLugar = inspecciones.map(inspeccion => {
-      // Find the corresponding lugar
+      
       const lugarEncontrado = lugares.find(l => l.id === inspeccion.idlugarproduccion) || null;
       
-      // Remove idlugarproduccion and add lugar
       const { idlugarproduccion, ...restoInspeccion } = inspeccion;
       
       return {
