@@ -159,37 +159,113 @@ class InspectionService {
     return inspeccionesConLugar;
   }
 
+  async getLugarById(id_lugar, token) {
 
-  //inspecciones tecnicas
-  async getInspeccionesTecnicasAsignadas(authHeader){
-    let user = {};
-    try {
-      if (!authHeader) throw new AppError('No token provisto', 401);
-
-      const response = await fetch(`${env.ENTITIES_SERVICE_URL}/users/me`, {
+    try{
+    const responseLugar = await fetch(`${env.ENTITIES_SERVICE_URL}/locations/lugar/${id_lugar}`, {
         method: 'GET',
-        headers: { 'Authorization': authHeader,
+        headers: { 'Authorization': token,
           'Content-Type': 'application/json' }
       });
 
+
+      if (!responseLugar.ok) {
+        throw new AppError(`El servidor respondió con código ${responseLugar.status}` + responseLugar.statusText, responseLugar.status);
+      }
+
+      const resultLugar = await responseLugar.json();
+      return resultLugar.data;
+    }catch(e){
+      throw new AppError('Error al obtener el lugar: ' + e.message, 500);
+    }
+
+  }
+
+
+  async getUserById(token, userId) {
+    try {
+      const response = await fetch(`${env.ENTITIES_SERVICE_URL}/users/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
       if (!response.ok) {
-        throw new AppError(`El servidor respondió con código ${response.status}` + response.statusText);
+        const body = await response.text();
+        throw new AppError(`El servidor respondió con código ${response.status}: ${body}`, 500);
       }
 
       const resultData = await response.json();
-      user = resultData.data;
-      let result = null;
+      return resultData.data;
+    } catch (e) {
+      throw new AppError('Error al obtener el usuario: ' + e.message, 500);
+    }
+  }
 
-      if (user.rol==='Tecnico'){
-        result = await inspectionRepository.getInspeccionesTecnicasAsignadasTecnico(user.id);
-      }else if (user.rol==='Productor'){
-        result = await inspectionRepository.getInspeccionesTecnicasAsignadasProductor(user.id);
+  async getInspeccionesTecnicasAsignadas(authHeader) {
+    try {
+      const user = await this.getUserById(authHeader, 'me');
+      let inspecciones;
+
+      if (user.rol === 'Tecnico') {
+        inspecciones = await inspectionRepository.getInspeccionesTecnicasAsignadasTecnico(user.id);
+      } else if (user.rol === 'Productor') {
+        inspecciones = await inspectionRepository.getInspeccionesTecnicasAsignadasProductor(user.id);
+      } else {
+        throw new AppError('Rol no válido para esta operación', 403);
       }
-      return result;
-    }catch(e){
+
+      if (!Array.isArray(inspecciones)) {
+        throw new AppError('Los datos de inspecciones no tienen el formato esperado', 500);
+      }
+
+      if (inspecciones.length === 0) {
+        return [];
+      }
+
+      const inspeccionesEnriquecidas = await Promise.all(inspecciones.map(async (inspeccion) => {
+        const solicitud = inspeccion.solicitud_inspeccion || {};
+        const lugarId = solicitud.idlugarproduccion;
+        const productorId = solicitud.uidproductor;
+        const tecnicoId = inspeccion.uidtecnico;
+
+        let lugarNombre = null;
+        if (lugarId) {
+          const lugar = await this.getLugarById(lugarId, authHeader);
+          lugarNombre = lugar?.nombre || null;
+        }
+
+        let productorNombre = null;
+        if (productorId) {
+          const productor = await this.getUserById(authHeader, productorId);
+          productorNombre = productor?.nombre || `${productor?.nombre || ''} ${productor?.apellido || ''}`.trim() || null;
+        }
+
+        let tecnicoNombre = null;
+        if (tecnicoId) {
+          const tecnico = await this.getUserById(authHeader, tecnicoId);
+          tecnicoNombre = tecnico?.nombre || `${tecnico?.nombre || ''} ${tecnico?.apellido || ''}`.trim() || null;
+        }
+
+        return {
+          ...inspeccion,
+          lugarNombre,
+          productorNombre,
+          tecnicoNombre,
+          solicitud_inspeccion: {
+            ...solicitud,
+            productorNombre,
+            lugarNombre,
+          }
+        };
+      }));
+
+      return inspeccionesEnriquecidas;
+    } catch (e) {
       throw new AppError(e.message, 500);
     }
-    
   }
 
   async makeInspeccionTecnica(id_tecnico, data) {

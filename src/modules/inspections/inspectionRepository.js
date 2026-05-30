@@ -119,7 +119,7 @@ class InspectionRepository {
       // 3. Consultamos las inspecciones técnicas usando un filtro .in()
       const { data: inspecciones, error: error2 } = await supabase
         .from('inspeccion_tecnica')
-        .select('*, solicitud_inspeccion(*)') // Hacemos un join automático para traer también los datos de la solicitud
+        .select('*, solicitud_inspeccion(*)') // Hacemos un join para traer también los datos de la solicitud
         .in('idsolicitud', idsSolicitudes);
 
       if (error2) throw new AppError(error2.message, 404);
