@@ -95,7 +95,8 @@ class InspectionRepository {
     const {data, error} = await supabase
     .from('inspeccion_tecnica')
     .select('*, solicitud_inspeccion(*)')
-    .eq('uidtecnico', uidtecnico);
+    .eq('uidtecnico', uidtecnico)
+    .or('estado.eq.Pendiente, estado.eq.En proceso');
     if (error) throw new AppError(error.message, 500);
     return data;
   }
@@ -107,7 +108,7 @@ class InspectionRepository {
         .select('idsolicitud')
         .eq('uidproductor', uidproductor)
         .eq('tipo_inspeccion', 'inspeccion tecnica') 
-        .eq('estado', 'Aceptada'); 
+        .eq('estado', 'Aprobado'); 
 
       if (error) throw new AppError(error.message, 500);
 
@@ -121,6 +122,7 @@ class InspectionRepository {
         .from('inspeccion_tecnica')
         .select('*, solicitud_inspeccion(*)') // Hacemos un join para traer también los datos de la solicitud
         .in('idsolicitud', idsSolicitudes);
+        
 
       if (error2) throw new AppError(error2.message, 404);
 
@@ -130,14 +132,14 @@ class InspectionRepository {
   async makeInspeccionTecnica(data){
     const {data:result, error} = await supabase
     .from('inspeccion_tecnica')
-    .update(data)
+    .update({...data})
     .eq('idinspeccion', data.idinspeccion)
     .select()
     .single();
     if (error) throw new AppError(error.message, 400);
     return result;
   }
-    
+
 
   async getInspeccionTecnicaById(idinspeccion) {
     const { data, error } = await supabase

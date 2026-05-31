@@ -261,7 +261,6 @@ class InspectionService {
           }
         };
       }));
-
       return inspeccionesEnriquecidas;
     } catch (e) {
       throw new AppError(e.message, 500);
@@ -273,11 +272,7 @@ class InspectionService {
     if (inspeccion.uidtecnico !== id_tecnico) {
       throw new AppError('No eres el tecnico asignado para realizar esta inspeccion', 403);
     }
-
-    if(solicitud.tipo_inspeccion !== 'inspeccion tecnica') {
-      throw new AppError('La solicitud no es una inspeccion tecnica', 400);
-    }
-    return await inspectionRepository.makeInspeccionTecnica(id_tecnico, data);
+    return await inspectionRepository.makeInspeccionTecnica(data);
   }
 }
 module.exports = new InspectionService();
