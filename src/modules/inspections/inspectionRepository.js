@@ -91,24 +91,38 @@ class InspectionRepository {
   }
 
   //inspeccion tecnica 
-  async getInspeccionesTecnicasAsignadasTecnico(uidtecnico){
-    const {data, error} = await supabase
-    .from('inspeccion_tecnica')
-    .select('*, solicitud_inspeccion(*)')
-    .eq('uidtecnico', uidtecnico)
-    .or('estado.eq.Pendiente, estado.eq.En proceso');
-    if (error) throw new AppError(error.message, 500);
-    return data;
-  }
+  async getInspeccionesAsignadasTecnico(uidtecnico) {
+  const [{ data: tecnicas, error: errorTecnica }, { data: fitos, error: errorFito }] =
+    await Promise.all([
+      supabase
+        .from('inspeccion_tecnica')
+        .select('*, solicitud_inspeccion(*)')
+        .eq('uidtecnico', uidtecnico)
+        .or('estado.eq.Pendiente,estado.eq.En proceso'),
+      supabase
+        .from('inspeccion_fitosanitaria')
+        .select('*, solicitud_inspeccion(*)')
+        .eq('uidtecnico', uidtecnico)
+        .or('estado.eq.Pendiente,estado.eq.En proceso')
+    ]);
 
-  async getInspeccionesTecnicasAsignadasProductor(uidproductor){
-      // 1. Obtenemos las solicitudes del productor
+  if (errorTecnica) throw new AppError(errorTecnica.message, 500);
+  if (errorFito) throw new AppError(errorFito.message, 500);
+
+  const tecnicasConTipo = tecnicas.map(item => ({ ...item, tipo_inspeccion: 'inspeccion tecnica' }));
+  const fitosConTipo = fitos.map(item => ({ ...item, tipo_inspeccion: 'inspeccion fitosanitaria' })); 
+  console.log([...tecnicasConTipo, ...fitosConTipo]);
+  return [...tecnicasConTipo, ...fitosConTipo];
+}
+
+  async getInspeccionesAsignadasProductor(uidproductor){
+      // 1. Obtenemos las solicitudes del productor para ambos tipos de inspección
       const { data: solicitudes, error } = await supabase
         .from('solicitud_inspeccion')
         .select('idsolicitud')
         .eq('uidproductor', uidproductor)
-        .eq('tipo_inspeccion', 'inspeccion tecnica') 
-        .eq('estado', 'Aprobado'); 
+        .in('tipo_inspeccion', ['inspeccion tecnica', 'inspeccion fitosanitaria'])
+        .eq('estado', 'Aprobado');
 
       if (error) throw new AppError(error.message, 500);
 
@@ -117,16 +131,35 @@ class InspectionRepository {
       // 2. Extraemos un arreglo solo con los IDs
       const idsSolicitudes = solicitudes.map(s => s.idsolicitud);
 
-      // 3. Consultamos las inspecciones técnicas usando un filtro .in()
-      const { data: inspecciones, error: error2 } = await supabase
-        .from('inspeccion_tecnica')
-        .select('*, solicitud_inspeccion(*)') // Hacemos un join para traer también los datos de la solicitud
-        .in('idsolicitud', idsSolicitudes);
-        
+      // 3. Consultamos ambas tablas de inspección usando el filtro .in()
+      const [
+        { data: tecnicas, error: errorTecnica },
+        { data: fitos, error: errorFito }
+      ] = await Promise.all([
+        supabase
+          .from('inspeccion_tecnica')
+          .select('*, solicitud_inspeccion(*)')
+          .in('idsolicitud', idsSolicitudes),
+        supabase
+          .from('inspeccion_fitosanitaria')
+          .select('*, solicitud_inspeccion(*)')
+          .in('idsolicitud', idsSolicitudes)
+      ]);
 
-      if (error2) throw new AppError(error2.message, 404);
+      if (errorTecnica) throw new AppError(errorTecnica.message, 404);
+      if (errorFito) throw new AppError(errorFito.message, 404);
 
-      return inspecciones;
+      const tecnicasConTipo = (tecnicas || []).map(item => ({
+        ...item,
+        tipo_inspeccion: 'inspeccion tecnica'
+      }));
+
+      const fitosConTipo = (fitos || []).map(item => ({
+        ...item,
+        tipo_inspeccion: 'inspeccion fitosanitaria'
+      }));
+      console.log([...tecnicasConTipo, ...fitosConTipo]);
+      return [...tecnicasConTipo, ...fitosConTipo];
     }
 
   async makeInspeccionTecnica(data){

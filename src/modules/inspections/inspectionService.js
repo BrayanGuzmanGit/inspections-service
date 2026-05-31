@@ -210,9 +210,9 @@ class InspectionService {
       let inspecciones;
 
       if (user.rol === 'Tecnico') {
-        inspecciones = await inspectionRepository.getInspeccionesTecnicasAsignadasTecnico(user.id);
+        inspecciones = await inspectionRepository.getInspeccionesAsignadasTecnico(user.id);
       } else if (user.rol === 'Productor') {
-        inspecciones = await inspectionRepository.getInspeccionesTecnicasAsignadasProductor(user.id);
+        inspecciones = await inspectionRepository.getInspeccionesAsignadasProductor(user.id);
       } else {
         throw new AppError('Rol no válido para esta operación', 403);
       }

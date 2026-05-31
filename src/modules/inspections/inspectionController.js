@@ -1,6 +1,5 @@
 const inspectionService = require('./inspectionService');
 const ApiResponse = require('../../shared/ApiResponse');
-const AppError = require('../../shared/AppError');
 
 class InspectionController {
   async solicitInspection(req, res, next) {
