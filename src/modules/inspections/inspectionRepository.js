@@ -92,8 +92,12 @@ class InspectionRepository {
 
   //inspeccion tecnica 
   async getInspeccionesAsignadasTecnico(uidtecnico) {
-  const [{ data: tecnicas, error: errorTecnica }, { data: fitos, error: errorFito }] =
-    await Promise.all([
+    // Traemos inspecciones técnicas y fitosanitarias en paralelo.
+    // Para la fitosanitaria, incluimos los lotes y sus conteos de plagas (relaciones anidadas).
+    const [
+      { data: tecnicas = [], error: errorTecnica },
+      { data: fitos = [], error: errorFito }
+    ] = await Promise.all([
       supabase
         .from('inspeccion_tecnica')
         .select('*, solicitud_inspeccion(*)')
@@ -101,19 +105,20 @@ class InspectionRepository {
         .or('estado.eq.Pendiente,estado.eq.En proceso'),
       supabase
         .from('inspeccion_fitosanitaria')
-        .select('*, solicitud_inspeccion(*)')
+        .select('*, solicitud_inspeccion(*), inspeccion_lote(*, conteo_plagas(*))')
         .eq('uidtecnico', uidtecnico)
         .or('estado.eq.Pendiente,estado.eq.En proceso')
     ]);
 
-  if (errorTecnica) throw new AppError(errorTecnica.message, 500);
-  if (errorFito) throw new AppError(errorFito.message, 500);
+    if (errorTecnica) throw new AppError(errorTecnica.message, 500);
+    if (errorFito) throw new AppError(errorFito.message, 500);
 
-  const tecnicasConTipo = tecnicas.map(item => ({ ...item, tipo_inspeccion: 'inspeccion tecnica' }));
-  const fitosConTipo = fitos.map(item => ({ ...item, tipo_inspeccion: 'inspeccion fitosanitaria' })); 
-  console.log([...tecnicasConTipo, ...fitosConTipo]);
-  return [...tecnicasConTipo, ...fitosConTipo];
-}
+    const tecnicasConTipo = (tecnicas || []).map(item => ({ ...item, tipo_inspeccion: 'inspeccion tecnica' }));
+    const fitosConTipo = (fitos || []).map(item => ({ ...item, tipo_inspeccion: 'inspeccion fitosanitaria' }));
+
+    console.log('Inspecciones asignadas (tecnica+fitosanitaria):', [...tecnicasConTipo, ...fitosConTipo]);
+    return [...tecnicasConTipo, ...fitosConTipo];
+  }
 
   async getInspeccionesAsignadasProductor(uidproductor){
       // 1. Obtenemos las solicitudes del productor para ambos tipos de inspección

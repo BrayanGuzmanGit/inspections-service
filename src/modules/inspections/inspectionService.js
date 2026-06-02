@@ -194,12 +194,14 @@ class InspectionService {
 
       if (!response.ok) {
         const body = await response.text();
+        console.error(`getUserById fallo para userId=${userId}: ${response.status} ${body}`);
         throw new AppError(`El servidor respondió con código ${response.status}: ${body}`, 500);
       }
 
       const resultData = await response.json();
       return resultData.data;
     } catch (e) {
+      console.error(`getUserById catch para userId=${userId}:`, e);
       throw new AppError('Error al obtener el usuario: ' + e.message, 500);
     }
   }
@@ -263,6 +265,7 @@ class InspectionService {
       }));
       return inspeccionesEnriquecidas;
     } catch (e) {
+      console.error('Error en getInspeccionesTecnicasAsignadas:', e);
       throw new AppError(e.message, 500);
     }
   }

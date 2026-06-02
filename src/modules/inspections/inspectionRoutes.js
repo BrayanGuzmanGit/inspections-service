@@ -10,8 +10,10 @@ router.patch('/solicitudes/:idsolicitud', crossServiceAuth('Funcionario'), inspe
 //compartido
 router.get('/solicitudes', crossServiceAuth('Funcionario'), inspectionController.fetchSolicitudes);//Que solo se muestren las solicitudes pendientes y aceptadas
 
-//inspecciones tecnicas asignadas
+//inspecciones tecnicas y fitosanitariasasignadas
 router.get('/tecnica/asignadas', crossServiceAuth('Tecnico', 'Productor'), inspectionController.fetchInspeccionesTecnicasAsignadas);
+
+
 router.patch('/tecnica/asignadas', crossServiceAuth('Tecnico'), inspectionController.makeInspeccionTecnica); //El tecnico realiza las inspecciones tecnicas
 
 
