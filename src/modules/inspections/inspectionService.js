@@ -90,7 +90,7 @@ class InspectionService {
 
   async getDireccionLugar(idlugarproduccion, token) {
     try {
-      const response = await fetch(`${env.ENTITIES_SERVICE_URL}/locations/lugares/${idlugarproduccion}`, {
+      const response = await fetch(`${env.ENTITIES_SERVICE_URL}/locations/direccionLugar/${idlugarproduccion}`, {
         method: 'GET',
         headers: {
           'Authorization': token,
@@ -239,6 +239,11 @@ class InspectionService {
           lugarNombre = lugar?.nombre || null;
         }
 
+        let direccionLugar = null;
+        if (lugarId) {
+          direccionLugar = await this.getDireccionLugar(lugarId, authHeader);
+        }
+
         let productorNombre = null;
         if (productorId) {
           const productor = await this.getUserById(authHeader, productorId);
@@ -251,6 +256,7 @@ class InspectionService {
           tecnicoNombre = tecnico?.nombre || `${tecnico?.nombre || ''} ${tecnico?.apellido || ''}`.trim() || null;
         }
 
+
         return {
           ...inspeccion,
           lugarNombre,
@@ -260,6 +266,7 @@ class InspectionService {
             ...solicitud,
             productorNombre,
             lugarNombre,
+            direccionLugar,
           }
         };
       }));
