@@ -16,7 +16,8 @@ router.get('/tecnica/asignadas', crossServiceAuth('Tecnico', 'Productor'), inspe
 
 router.patch('/tecnica/asignadas', crossServiceAuth('Tecnico'), inspectionController.makeInspeccionTecnica); //El tecnico realiza las inspecciones tecnicas
 
-
+router.patch('/fitosanitaria/:idinspeccion/lote/:idlote', crossServiceAuth('Tecnico'), inspectionController.makeInspeccionFitosanitaria); //El tecnico realiza las inspecciones fitosanitarias
+router.patch('/fitosanitaria/:idinspeccion/terminar', crossServiceAuth('Tecnico'), inspectionController.terminarInspeccionFitosanitaria); //El tecnico termina la inspeccion fitosanitaria, cambiando el estado de la inspeccion a terminada
 // === Asistente Tecnico ===
 // router.post('/fitosanitaria', crossServiceAuth('Tecnico'), inspectionController.submitFito);
 // router.post('/tecnica', crossServiceAuth('Tecnico'), inspectionController.submitTecnica);

@@ -188,5 +188,137 @@ class InspectionRepository {
     if (error) throw new AppError(error.message, 404);
     return data;
   }
+
+  async getInspeccionLote(uidinspeccion, uidlote) {
+    const { data, error } = await supabase
+      .from('inspeccion_lote')
+      .select('*')
+      .eq('uidinspeccion', uidinspeccion)
+      .eq('uidlote', uidlote)
+      .maybeSingle();
+    if (error) throw new AppError(error.message, 404);
+    return data;
+  }
+
+  async insertInspeccionLote(id_inspeccion, id_lote, plantasencontradas, estadoFenologico, porcentaje_infestacion) {
+    const { data: inspeccionLoteData, error } = await supabase
+      .from('inspeccion_lote')
+      .insert({
+        uidinspeccion: id_inspeccion,
+        uidlote: id_lote,
+        plantasencontradas: plantasencontradas,
+        estado: 'terminada',
+        estadoFenologico: estadoFenologico || null,
+        porcentaje_infestacion: porcentaje_infestacion,
+      })
+      .select()
+      .single();
+      
+    if (error) { 
+      throw new AppError(error.message, 400);
+    }
+    return inspeccionLoteData;
+  }
+
+  async actuConteoPlagas(idinspeccionlote, idplaga, plantasinfestadas) {
+    const { data: result, error } = await supabase
+      .from('conteo_plagas')
+      .update({ plantasinfestadas })
+      .eq('idinspeccionlote', idinspeccionlote)
+      .eq('idplaga', idplaga)
+      .select()
+      .maybeSingle();
+    if (error) throw new AppError(error.message, 400);
+    return result;
+  }
+
+  async searchConteoPlagas(idinspeccionlote, idplaga) {
+    console.log(`Buscando conteo para inspeccion_lote ${idinspeccionlote} y plaga ${idplaga}`);
+    const { data, error } = await supabase
+      .from('conteo_plagas')
+      .select('*')
+      .eq('idinspeccionlote', idinspeccionlote)
+      .eq('idplaga', idplaga)
+      .maybeSingle();
+
+    if (error) throw new AppError(error.message, 404);
+    return data; 
+  }
+
+  async insertConteoPlagas(idinspeccionlote, idplaga, plantasinfestadas) {
+    const { data: result, error } = await supabase
+      .from('conteo_plagas')
+      .insert([{
+        idinspeccionlote,
+        idplaga,
+        plantasinfestadas
+      }])
+      .select()
+      .single();
+    if (error) throw new AppError(error.message, 400);
+    return result;
+  }
+
+  async makeInspeccionFitosanitaria(id_inspeccion, id_lote, data){
+    //Esta logica la debo pasar a el service
+    let inspeccionLoteData = await this.getInspeccionLote(id_inspeccion, id_lote);
+    if(!inspeccionLoteData) {
+      // Si no existe el registro de inspeccion_lote, lo creamos con estado "terminada"
+      inspeccionLoteData = await this.insertInspeccionLote(id_inspeccion, id_lote, data.plantasEncontradas, data.estadoFenologico, data.porcentajeInfestacion);
+    } else if (inspeccionLoteData.estado === 'terminada') {
+      throw new AppError('Esta inspección fitosanitaria ya ha sido realizada para este lote.', 400);
+    }
+
+    const{data:inspeccionFito, error:error2} = await supabase
+    .from('inspeccion_fitosanitaria')
+    .update({estado: 'En proceso'})
+    .eq('idinspeccion', id_inspeccion)
+    .select()
+    .single();
+    if (error2) {
+      throw new AppError(error2.message, 400);
+    }
+    // 2. Iterar e insertar los conteos
+    const conteos = data.conteo_plagas || [];
+    const resultadosConteo = []; // Para almacenar los resultados y retornarlos
+    
+    try {
+      for (const conteo of conteos) {
+        // Validar si el conteo ya existe
+        const conteoExistente = await this.searchConteoPlagas(inspeccionLoteData.id, conteo.idplaga);
+        console.log(`Conteo existente: `, conteoExistente);
+        if(conteoExistente) {
+          // Si existe, actualizamos el conteo
+          const conteoActualizado = await this.actuConteoPlagas(inspeccionLoteData.id, conteo.idplaga, conteo.plantasinfestadas);
+          resultadosConteo.push(conteoActualizado);
+        } else {
+          // Si no existe, lo insertamos
+          const conteoInsertado = await this.insertConteoPlagas(inspeccionLoteData.id, conteo.idplaga, conteo.plantasinfestadas);
+          resultadosConteo.push(conteoInsertado);
+        }
+      }
+    } catch (err) {
+      //Hacer un roolback si un insert de conteo_plagas falla
+      throw new AppError('Error al registrar conteo de plagas. Inspección cancelada.', 400);
+    }
+
+    // 3. Retornar los datos insertados correctamente
+    return {
+      inspeccion: inspeccionLoteData,
+      conteos: resultadosConteo
+    };
+  }
+  
+  async terminarInspeccionFitosanitaria(id_inspeccion, estado){
+    const {data, error} = await supabase
+    .from('inspeccion_fitosanitaria')
+    .update({estado: estado})
+    .eq('idinspeccion', id_inspeccion)
+    .select()
+    .single();
+    if (error) throw new AppError(error.message, 400);
+    return data;
+  }
+
 }
 module.exports = new InspectionRepository();

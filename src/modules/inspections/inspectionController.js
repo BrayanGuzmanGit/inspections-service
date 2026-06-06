@@ -70,5 +70,27 @@ class InspectionController {
     }
   }
 
+  async makeInspeccionFitosanitaria(req, res, next) {
+    try{
+      const { idinspeccion, idlote } = req.params;
+      const result = await inspectionService.makeInspeccionFitosanitaria(req.user.id, idinspeccion, idlote, req.body);
+      return ApiResponse.success(res, result, 'Inspeccion fitosanitaria realizada', 201);
+    }catch(err){
+      next(err);
+    }
+  }
+
+  async terminarInspeccionFitosanitaria(req,res,next){
+    try{
+      const { idinspeccion } = req.params;
+      const {estado} = req.body;
+      const result = await inspectionService.terminarInspeccionFitosanitaria(idinspeccion, estado);
+      return ApiResponse.success(res, result, 'Inspeccion fitosanitaria terminada', 201);
+    }catch(err){
+      next(err);
+    }
+  }
+
+
 }
 module.exports = new InspectionController();

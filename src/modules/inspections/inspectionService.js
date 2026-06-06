@@ -277,5 +277,16 @@ class InspectionService {
     }
     return await inspectionRepository.makeInspeccionTecnica(data);
   }
+
+  async makeInspeccionFitosanitaria(id_tecnico, id_inspeccion, id_lote, data){
+    //Validar que el tecnico asignado a la inspeccion sea el mismo que esta intentando realizarla
+    const result = await inspectionRepository.makeInspeccionFitosanitaria(id_inspeccion, id_lote, data);
+    return result;
+  }
+
+  async terminarInspeccionFitosanitaria(idinspeccion, estado){
+    const result = await inspectionRepository.terminarInspeccionFitosanitaria(idinspeccion, estado);
+    return result;
+  }
 }
 module.exports = new InspectionService();
